@@ -5,7 +5,7 @@ from discord.ext import tasks
 
 # This bot automatically starts when run and stops when exited
 
-work_wait_time = 5  # Time in minutes between running the work command. Default: 421
+work_wait_time = 4  # Time in minutes between running the work command. Default: 421
 
 target_channel_id = 1457866346858545234
 
