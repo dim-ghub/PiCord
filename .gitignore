@@ -133,6 +133,10 @@ venv.bak/
 # Config files
 config.json
 
+# Log files
+*.log
+bot.log
+
 # Spyder project settings
 .spyderproject
 .spyproject
