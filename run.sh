@@ -27,16 +27,20 @@ fi
 echo -e "${YELLOW}Activating virtual environment...${NC}"
 source venv/bin/activate
 
-# Install dependencies only if not installed
+# Install dependencies only if not installed (using venv's python and pip)
 echo -e "${YELLOW}Checking dependencies...${NC}"
 if ! python -c "import discord" 2>/dev/null; then
     echo -e "${YELLOW}Installing discord.py-self...${NC}"
     pip install -U git+https://github.com/dolfies/discord.py-self.git
+else
+    echo -e "${GREEN}✅ discord.py-self already installed${NC}"
 fi
 
 if ! python -c "import aiohttp" 2>/dev/null; then
     echo -e "${YELLOW}Installing aiohttp...${NC}"
     pip install -U aiohttp[speedups]
+else
+    echo -e "${GREEN}✅ aiohttp already installed${NC}"
 fi
 
 echo -e "${GREEN}✅ Dependencies ready${NC}"
