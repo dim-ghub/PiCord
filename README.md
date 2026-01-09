@@ -13,11 +13,12 @@ This is a Python bot for Discord accounts that automates the UnbelievaBoat bot t
 ## 🎁 Features
 
 - Automatically runs the `work` command at a specified interval.
-- Automatically runs the `collect` command at a specified interval.
-- Deposits all earned money after each `work` and `collect` command.
+- Deposits all earned money after each `work` command.
 - Can be started and stopped with `!start` and `!stop` commands.
 
 ## 💻 Installation
+
+### Quick Setup (Recommended)
 
 1. Clone the repository:
 
@@ -31,13 +32,37 @@ This is a Python bot for Discord accounts that automates the UnbelievaBoat bot t
     cd UnbelievaBoat-AUTO
     ```
 
-3. Install the required Python packages:
+3. Run the setup script:
 
     ```bash
-    pip install -U --force-reinstall git+https://github.com/dolfies/discord.py-self.git
+    python3 setup.py
     ```
 
 4. Replace `"TOKEN"` in `main.py` with your Discord bot token.
+
+5. Run the bot:
+
+    ```bash
+    ./run.sh
+    ```
+
+### Manual Setup
+
+1. Create virtual environment:
+
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+
+2. Install dependencies:
+
+    ```bash
+    pip install -U --force-reinstall git+https://github.com/dolfies/discord.py-self.git
+    pip install -U aiohttp[speedups]
+    ```
+
+3. Replace `"TOKEN"` in `main.py` with your Discord bot token.
 
 ## 🚀 Usage
 
