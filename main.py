@@ -1,4 +1,5 @@
 from asyncio import sleep
+import os
 
 from discord import Client, TextChannel
 from discord.ext import tasks
@@ -27,6 +28,13 @@ async def deposit(channel):
     await channel.send("u.u deposit all")  # Run the deposit command
 
 
+def load_token():
+    with open('.env', 'r') as f:
+        for line in f:
+            if line.startswith('TOKEN='):
+                return line.split('=', 1)[1].strip()
+    return "TOKEN"
+
 client = Client()  # Define client session
 
 
@@ -45,4 +53,4 @@ async def on_ready():
     print("✅ Bot automation started!")
 
 
-client.run("TOKEN")
+client.run(load_token())
