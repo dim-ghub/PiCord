@@ -46,8 +46,8 @@ def main():
     
     print("✅ Setup completed successfully!")
     print("📝 Next steps:")
-    print("   1. Replace 'TOKEN' in main.py with your Discord token")
-    print("   2. Run './run.sh' to start the bot")
+    print("   1. Run './run.sh' to start the bot (it will prompt for your token)")
+    print("   2. Edit 'config.json' to customize bot settings")
 
 if __name__ == "__main__":
     main()
