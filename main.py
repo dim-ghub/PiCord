@@ -32,7 +32,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('bot.log'),
+        logging.FileHandler('bot.log', mode='w'),  # Overwrite file on each start
         logging.StreamHandler()
     ]
 )
@@ -42,62 +42,80 @@ logger = logging.getLogger(__name__)
 
 @tasks.loop(minutes=config['commands']['work']['cooldown_minutes'])
 async def auto_work():
-    channel = client.get_channel(config['discord']['channel_id'])
-    if channel and isinstance(channel, TextChannel):
-        prefix = config['bot']['prefix']
-        
-        if prefix == "/":
-            # Use slash commands
-            if work_slash_cmd:
-                logger.info(f"Running work slash command")
-                await work_slash_cmd.__call__(channel=channel)
-                logger.info(f"Work slash command executed, waiting {config['timing']['response_wait_seconds']} seconds for response")
-                await sleep(config['timing']['response_wait_seconds'])  # Wait for response
-                await deposit(channel)  # Deposit your newly earned money
-            else:
-                logger.error("Work slash command not found!")
-        else:
-            # Use prefix commands
-            command = config['commands']['work']['command']
-            message = f"{prefix} {command}"
-            
-            logger.info(f"Running work command: {message}")
-            await channel.send(message)
-            logger.info(f"Work command sent, waiting {config['timing']['response_wait_seconds']} seconds for response")
-            
-            await sleep(config['timing']['response_wait_seconds'])  # Wait for response
-            await deposit(channel)  # Deposit your newly earned money
-
-
-if config['commands']['collect']['enabled']:
-    @tasks.loop(minutes=config['commands']['collect']['cooldown_minutes'])
-    async def auto_collect():
+    try:
         channel = client.get_channel(config['discord']['channel_id'])
         if channel and isinstance(channel, TextChannel):
             prefix = config['bot']['prefix']
             
             if prefix == "/":
                 # Use slash commands
-                if collect_slash_cmd:
-                    logger.info(f"Running collect slash command")
-                    await sleep(2)  # Wait a few seconds for safety
-                    await collect_slash_cmd.__call__(channel=channel)
-                    logger.info(f"Collect slash command executed, waiting {config['timing']['response_wait_seconds']} seconds for response")
-                    await sleep(config['timing']['response_wait_seconds'])  # Wait for response
-                    await deposit(channel)  # Deposit your newly earned money
+                if work_slash_cmd:
+                    logger.info(f"Running work slash command")
+                    try:
+                        await work_slash_cmd.__call__(channel=channel)
+                        logger.info(f"Work slash command executed, waiting {config['timing']['response_wait_seconds']} seconds for response")
+                        await sleep(config['timing']['response_wait_seconds'])  # Wait for response
+                        await deposit(channel)  # Deposit your newly earned money
+                    except Exception as e:
+                        logger.error(f"Failed to execute work slash command: {e}")
                 else:
-                    logger.error("Collect slash command not found!")
+                    logger.error("Work slash command not found!")
             else:
                 # Use prefix commands
-                command = config['commands']['collect']['command']
+                command = config['commands']['work']['command']
                 message = f"{prefix} {command}"
                 
-                logger.info(f"Running collect command: {message}")
-                await channel.send(message)
-                logger.info(f"Collect command sent, waiting {config['timing']['response_wait_seconds']} seconds for response")
+                logger.info(f"Running work command: {message}")
+                try:
+                    await channel.send(message)
+                    logger.info(f"Work command sent, waiting {config['timing']['response_wait_seconds']} seconds for response")
+                    
+                    await sleep(config['timing']['response_wait_seconds'])  # Wait for response
+                    await deposit(channel)  # Deposit your newly earned money
+                except Exception as e:
+                    logger.error(f"Failed to send work command: {e}")
+    except Exception as e:
+        logger.error(f"Error in auto_work task: {e}")
+
+
+if config['commands']['collect']['enabled']:
+    @tasks.loop(minutes=config['commands']['collect']['cooldown_minutes'])
+    async def auto_collect():
+        try:
+            channel = client.get_channel(config['discord']['channel_id'])
+            if channel and isinstance(channel, TextChannel):
+                prefix = config['bot']['prefix']
                 
-                await sleep(config['timing']['response_wait_seconds'])  # Wait for response
-                await deposit(channel)  # Deposit your newly earned money
+                if prefix == "/":
+                    # Use slash commands
+                    if collect_slash_cmd:
+                        logger.info(f"Running collect slash command")
+                        await sleep(2)  # Wait a few seconds for safety
+                        try:
+                            await collect_slash_cmd.__call__(channel=channel)
+                            logger.info(f"Collect slash command executed, waiting {config['timing']['response_wait_seconds']} seconds for response")
+                            await sleep(config['timing']['response_wait_seconds'])  # Wait for response
+                            await deposit(channel)  # Deposit your newly earned money
+                        except Exception as e:
+                            logger.error(f"Failed to execute collect slash command: {e}")
+                    else:
+                        logger.error("Collect slash command not found!")
+                else:
+                    # Use prefix commands
+                    command = config['commands']['collect']['command']
+                    message = f"{prefix} {command}"
+                    
+                    logger.info(f"Running collect command: {message}")
+                    try:
+                        await channel.send(message)
+                        logger.info(f"Collect command sent, waiting {config['timing']['response_wait_seconds']} seconds for response")
+                        
+                        await sleep(config['timing']['response_wait_seconds'])  # Wait for response
+                        await deposit(channel)  # Deposit your newly earned money
+                    except Exception as e:
+                        logger.error(f"Failed to send collect command: {e}")
+        except Exception as e:
+            logger.error(f"Error in auto_collect task: {e}")
 
 
 
@@ -114,8 +132,11 @@ async def deposit(channel):
         if deposit_slash_cmd:
             await sleep(config['timing']['deposit_wait_seconds'])  # Wait for safety seconds
             logger.info(f"Running deposit slash command")
-            await deposit_slash_cmd.__call__(channel=channel, amount="all")
-            logger.info("Deposit slash command executed successfully")
+            try:
+                await deposit_slash_cmd.__call__(channel=channel, amount="all")
+                logger.info("Deposit slash command executed successfully")
+            except Exception as e:
+                logger.error(f"Failed to execute deposit slash command: {e}")
         else:
             logger.error("Deposit slash command not found!")
     else:
@@ -124,8 +145,11 @@ async def deposit(channel):
         message = f"{prefix} deposit all"
         
         logger.info(f"Running deposit command: {message}")
-        await channel.send(message)
-        logger.info("Deposit command sent successfully")
+        try:
+            await channel.send(message)
+            logger.info("Deposit command sent successfully")
+        except Exception as e:
+            logger.error(f"Failed to send deposit command: {e}")
 
 
 client = Client()  # Define client session
