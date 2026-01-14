@@ -22,6 +22,10 @@ class AutoBoatFeature:
         self.collect_slash_cmd = None
         self.deposit_slash_cmd = None
         
+        # Channel settings
+        self.current_channel = None  # Fallback channel from command
+        self.override_channel = None  # Explicit channel override
+        
         # Task references
         self.auto_work_task = None
         self.auto_collect_task = None
@@ -49,55 +53,67 @@ class AutoBoatFeature:
             await self.fetch_slash_commands()
     
     async def fetch_slash_commands(self):
-        """Fetch slash commands from Discord"""
+        """Fetch slash commands from Discord using ID-based approach"""
         self.logger.info("Fetching slash commands...")
-        channel = self.client.get_channel(self.feature_config['discord']['channel_id'])
+        # Use override channel first, then configured channel, then fallback
+        channel = self.override_channel or self.client.get_channel(self.feature_config['discord']['channel_id'])
         
         if not channel or not isinstance(channel, TextChannel):
-            self.logger.error("Could not access the specified channel!")
-            return
+            # Fallback to current channel if set
+            if self.current_channel and isinstance(self.current_channel, TextChannel):
+                channel = self.current_channel
+            else:
+                self.logger.error("Could not access the specified channel!")
+                return
         
         try:
             application_commands = await channel.application_commands()
             self.logger.info(f"Found {len(application_commands)} application commands")
             
-            # Fetch commands by ID if specified in config, otherwise by name matching
+            # Fetch commands by ID (like the reference code)
             for command in application_commands:
                 if command.type == ApplicationCommandType.chat_input:
-                    # Match by ID first (more reliable)
-                    if (self.feature_config['commands']['work']['slash_command_id'] and 
-                        command.id == self.feature_config['commands']['work']['slash_command_id']):
+                    # Priority 1: Use configured IDs (more reliable)
+                    work_id = self.feature_config['commands']['work']['slash_command_id']
+                    collect_id = self.feature_config['commands']['collect']['slash_command_id']
+                    deposit_id = self.feature_config['commands']['deposit']['slash_command_id']
+                    
+                    if work_id and command.id == work_id:
                         self.work_slash_cmd = command
-                        self.logger.info(f"Found work command by ID: {command.name}")
-                    elif (self.feature_config['commands']['collect']['slash_command_id'] and 
-                          command.id == self.feature_config['commands']['collect']['slash_command_id']):
+                        self.logger.info(f"Found work command by ID {work_id}: {command.name}")
+                    elif collect_id and command.id == collect_id:
                         self.collect_slash_cmd = command
-                        self.logger.info(f"Found collect command by ID: {command.name}")
-                    elif (self.feature_config['commands']['deposit']['slash_command_id'] and 
-                          command.id == self.feature_config['commands']['deposit']['slash_command_id']):
+                        self.logger.info(f"Found collect command by ID {collect_id}: {command.name}")
+                    elif deposit_id and command.id == deposit_id:
                         self.deposit_slash_cmd = command
-                        self.logger.info(f"Found deposit command by ID: {command.name}")
-                    # Fallback to name matching if no IDs specified
-                    elif (not self.feature_config['commands']['work']['slash_command_id'] and 
-                          command.name.lower() == "work"):
+                        self.logger.info(f"Found deposit command by ID {deposit_id}: {command.name}")
+                    # Priority 2: Fallback to name matching if no IDs configured
+                    elif not work_id and command.name.lower() in ["work", "w"]:
                         self.work_slash_cmd = command
                         self.logger.info(f"Found work command by name: {command.name}")
-                    elif (not self.feature_config['commands']['collect']['slash_command_id'] and 
-                          command.name.lower() == "collect"):
+                    elif not collect_id and command.name.lower() in ["collect", "c"]:
                         self.collect_slash_cmd = command
                         self.logger.info(f"Found collect command by name: {command.name}")
-                    elif (not self.feature_config['commands']['deposit']['slash_command_id'] and 
-                          command.name.lower() == "deposit"):
+                    elif not deposit_id and command.name.lower() in ["deposit", "dep", "bank"]:
                         self.deposit_slash_cmd = command
                         self.logger.info(f"Found deposit command by name: {command.name}")
             
-            if not self.work_slash_cmd:
-                self.logger.warning("Work slash command not found!")
+            # Log command findings
+            if self.work_slash_cmd:
+                self.logger.info(f"✅ Work command ready: {self.work_slash_cmd.name} (ID: {self.work_slash_cmd.id})")
+            else:
+                self.logger.warning("❌ Work slash command not found!")
+                
             if (self.feature_config['commands']['collect']['enabled'] and 
-                not self.collect_slash_cmd):
-                self.logger.warning("Collect slash command not found!")
-            if not self.deposit_slash_cmd:
-                self.logger.warning("Deposit slash command not found!")
+                self.collect_slash_cmd):
+                self.logger.info(f"✅ Collect command ready: {self.collect_slash_cmd.name} (ID: {self.collect_slash_cmd.id})")
+            elif self.feature_config['commands']['collect']['enabled']:
+                self.logger.warning("❌ Collect slash command not found!")
+                
+            if self.deposit_slash_cmd:
+                self.logger.info(f"✅ Deposit command ready: {self.deposit_slash_cmd.name} (ID: {self.deposit_slash_cmd.id})")
+            else:
+                self.logger.warning("❌ Deposit slash command not found!")
                 
         except Exception as e:
             self.logger.error(f"Failed to fetch application commands: {e}")
@@ -109,14 +125,6 @@ class AutoBoatFeature:
             return
         
         self.logger.info("Starting AutoBoat feature...")
-        
-        # Countdown before starting
-        countdown = self.feature_config['timing']['startup_countdown_seconds']
-        self.logger.info(f"Starting automation in {countdown} seconds...")
-        
-        for i in range(countdown, 0, -1):
-            self.logger.info(f"{i}...")
-            await sleep(1)
         
         # Start the automation tasks
         self.auto_work_task = tasks.loop(
@@ -158,9 +166,14 @@ class AutoBoatFeature:
     async def auto_work(self):
         """Automated work task"""
         try:
-            channel = self.client.get_channel(self.feature_config['discord']['channel_id'])
+            # Use override channel first, then configured channel, then fallback
+            channel = self.override_channel or self.client.get_channel(self.feature_config['discord']['channel_id'])
             if not channel or not isinstance(channel, TextChannel):
-                return
+                # Fallback to current channel if set
+                if self.current_channel and isinstance(self.current_channel, TextChannel):
+                    channel = self.current_channel
+                else:
+                    return
             
             prefix = self.feature_config['bot']['prefix']
             
@@ -197,9 +210,14 @@ class AutoBoatFeature:
     async def auto_collect(self):
         """Automated collect task"""
         try:
-            channel = self.client.get_channel(self.feature_config['discord']['channel_id'])
+            # Use override channel first, then configured channel, then fallback
+            channel = self.override_channel or self.client.get_channel(self.feature_config['discord']['channel_id'])
             if not channel or not isinstance(channel, TextChannel):
-                return
+                # Fallback to current channel if set
+                if self.current_channel and isinstance(self.current_channel, TextChannel):
+                    channel = self.current_channel
+                else:
+                    return
             
             prefix = self.feature_config['bot']['prefix']
             

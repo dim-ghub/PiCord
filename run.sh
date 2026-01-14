@@ -38,15 +38,25 @@ fi
 echo -e "${YELLOW}Activating virtual environment...${NC}"
 source venv/bin/activate
 
-# Upgrade pip for better performance
-echo -e "${YELLOW}Upgrading pip...${NC}"
-pip install --upgrade pip
+# Check if dependencies are already installed
+DEPS_INSTALLED=false
+if pip list 2>/dev/null | grep -q discord.py-self; then
+    echo -e "${GREEN}✅ Dependencies already installed${NC}"
+    DEPS_INSTALLED=true
+fi
 
-# Install dependencies
-echo -e "${YELLOW}Installing dependencies...${NC}"
-pip install -r requirements.txt
-
-echo -e "${GREEN}✅ Dependencies ready${NC}"
+# Install/upgrade dependencies only if needed
+if [ "$DEPS_INSTALLED" = false ]; then
+    # Upgrade pip for better performance
+    echo -e "${YELLOW}Upgrading pip...${NC}"
+    pip install --upgrade pip
+    
+    # Install dependencies
+    echo -e "${YELLOW}Installing dependencies...${NC}"
+    pip install -r requirements.txt
+    
+    echo -e "${GREEN}✅ Dependencies installed${NC}"
+fi
 
 # Check if bot.py exists
 if [ ! -f "bot.py" ]; then

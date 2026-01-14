@@ -1,8 +1,9 @@
 {
   "bot": {
-    "prefix": "!",
-    "name": "RaspberryBot",
-    "version": "1.0.0"
+    "prefix": ".pc ",
+    "name": "PiCord",
+    "version": "1.0.0",
+    "silent": true
   },
   "discord": {
     "token_file": ".env",

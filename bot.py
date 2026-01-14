@@ -5,6 +5,7 @@ import os
 import sys
 from datetime import datetime
 from typing import Dict, Any
+from pathlib import Path
 
 import discord
 from discord.ext import tasks
@@ -12,11 +13,13 @@ from discord.ext import tasks
 
 class RaspberryBot:
     def __init__(self, config_path: str = "bot_config.json"):
+        self.config_path = config_path
         self.config = self.load_config(config_path)
         self.client = discord.Client()
         self.features = {}
         self.setup_logging()
         self.setup_events()
+        self.setup_config_watcher()
         
     def load_config(self, config_path: str) -> Dict[str, Any]:
         try:
@@ -67,6 +70,51 @@ class RaspberryBot:
         async def on_message(message):
             await self.handle_message(message)
     
+    def setup_config_watcher(self):
+        """Setup file watcher for config hot reloading"""
+        @tasks.loop(seconds=5)
+        async def config_watcher():
+            try:
+                # Check main config
+                current_mtime = Path(self.config_path).stat().st_mtime
+                if hasattr(self, '_config_mtime') and current_mtime != self._config_mtime:
+                    self.logger.info("🔄 Main config changed, reloading...")
+                    self.config = self.load_config(self.config_path)
+                    self._config_mtime = current_mtime
+                    await self.reload_features_config()
+                elif not hasattr(self, '_config_mtime'):
+                    self._config_mtime = current_mtime
+                
+                # Check feature configs
+                for feature_name, feature_config in self.features.items():
+                    if hasattr(feature_config, 'config') and 'config_file' in feature_config.config:
+                        feature_config_path = feature_config.config['config_file']
+                        if Path(feature_config_path).exists():
+                            feature_mtime = Path(feature_config_path).stat().st_mtime
+                            feature_mtime_key = f'_{feature_name}_config_mtime'
+                            
+                            if hasattr(self, feature_mtime_key) and feature_mtime != getattr(self, feature_mtime_key):
+                                self.logger.info(f"🔄 {feature_name} config changed, reloading...")
+                                feature_config.feature_config = feature_config.load_feature_config()
+                                setattr(self, feature_mtime_key, feature_mtime)
+                            elif not hasattr(self, feature_mtime_key):
+                                setattr(self, feature_mtime_key, feature_mtime)
+                                
+            except Exception as e:
+                self.logger.error(f"Error in config watcher: {e}")
+        
+        config_watcher.start()
+    
+    async def reload_features_config(self):
+        """Reload all feature configurations"""
+        for feature_name, feature in self.features.items():
+            if hasattr(feature, 'feature_config'):
+                try:
+                    feature.feature_config = feature.load_feature_config()
+                    self.logger.info(f"✅ Reloaded {feature_name} config")
+                except Exception as e:
+                    self.logger.error(f"❌ Failed to reload {feature_name} config: {e}")
+    
     async def on_ready(self):
         self.logger.info(f"Bot logged in as {self.client.user}")
         print(f"✅ {self.config['bot']['name']} logged in as {self.client.user}")
@@ -97,8 +145,16 @@ class RaspberryBot:
                 except Exception as e:
                     self.logger.error(f"Failed to load feature {feature_name}: {e}")
     
+    async def send_message(self, message, content, silent=False):
+        if silent or self.config['bot'].get('silent', False):
+            await message.delete()
+            return
+        await message.channel.send(content, reference=message)
+
     async def handle_message(self, message):
-        if message.author == self.client.user:
+        # For discord.py-self (user accounts), process messages from self
+        # For regular bots, ignore self messages
+        if message.author != self.client.user:
             return
         
         prefix = self.config["bot"]["prefix"]
@@ -113,36 +169,85 @@ class RaspberryBot:
         
         command = parts[0].lower()
         args = parts[1:] if len(parts) > 1 else []
-        
+
         if command == "start" and args:
             feature_name = args[0].lower()
             if feature_name in self.features:
                 try:
+                    # Pass current channel to feature for fallback
+                    self.features[feature_name].current_channel = message.channel
+                    
+                    # Check if a channel ID was provided
+                    if len(args) > 1:
+                        try:
+                            channel_id = int(args[1])
+                            override_channel = self.client.get_channel(channel_id)
+                            if override_channel:
+                                self.features[feature_name].override_channel = override_channel
+                                self.logger.info(f"Using channel override: {channel_id}")
+                            else:
+                                await self.send_message(message, f"⚠️ Could not find channel {channel_id}, using current channel")
+                        except ValueError:
+                            await self.send_message(message, f"⚠️ Invalid channel ID format, using current channel")
+                    
                     await self.features[feature_name].start()
-                    await message.reply(f"✅ Started {feature_name} feature!")
+                    await self.send_message(message, f"✅ Started {feature_name} feature!")
                 except Exception as e:
-                    await message.reply(f"❌ Failed to start {feature_name}: {e}")
+                    await self.send_message(message, f"❌ Failed to start {feature_name}: {e}")
             else:
-                await message.reply(f"❌ Unknown feature: {feature_name}")
+                await self.send_message(message, f"❌ Unknown feature: {feature_name}")
         elif command == "stop" and args:
             feature_name = args[0].lower()
             if feature_name in self.features:
                 try:
                     await self.features[feature_name].stop()
-                    await message.reply(f"✅ Stopped {feature_name} feature!")
+                    await self.send_message(message, f"✅ Stopped {feature_name} feature!")
                 except Exception as e:
-                    await message.reply(f"❌ Failed to stop {feature_name}: {e}")
+                    await self.send_message(message, f"❌ Failed to stop {feature_name}: {e}")
             else:
-                await message.reply(f"❌ Unknown feature: {feature_name}")
+                await self.send_message(message, f"❌ Unknown feature: {feature_name}")
         elif command == "help":
             help_text = f"**{self.config['bot']['name']} Commands:**\n"
-            help_text += f"`{prefix}start <feature>` - Start a feature\n"
+            help_text += f"`{prefix}start <feature> [channel_id]` - Start a feature\n"
             help_text += f"`{prefix}stop <feature>` - Stop a feature\n"
+            help_text += f"`{prefix}reload` - Reload configuration (auto-reloads on file change)\n"
+            help_text += f"`{prefix}restart <feature>` - Restart a feature\n"
             help_text += f"`{prefix}help` - Show this help\n\n"
             help_text += "**Available features:**\n"
             for feature_name in self.features.keys():
                 help_text += f"- {feature_name}\n"
-            await message.reply(help_text)
+            await self.send_message(message, help_text)
+        elif command == "reload":
+            try:
+                self.config = self.load_config(self.config_path)
+                await self.reload_features_config()
+                await self.send_message(message, f"✅ Configuration reloaded successfully!")
+                self.logger.info("🔄 Configuration manually reloaded")
+            except Exception as e:
+                await self.send_message(message, f"❌ Failed to reload config: {e}")
+                self.logger.error(f"Failed to reload config: {e}")
+        elif command == "restart":
+            if args and args[0].lower() in self.features:
+                feature_name = args[0].lower()
+                try:
+                    feature = self.features[feature_name]
+                    was_running = feature.is_running if hasattr(feature, 'is_running') else False
+                    
+                    if was_running:
+                        await feature.stop()
+                        await asyncio.sleep(1)  # Brief pause
+                    
+                    await feature.initialize()
+                    
+                    if was_running:
+                        await feature.start()
+                    
+                    await self.send_message(message, f"✅ Restarted {feature_name} feature!")
+                    self.logger.info(f"🔄 Restarted {feature_name} feature")
+                except Exception as e:
+                    await self.send_message(message, f"❌ Failed to restart {feature_name}: {e}")
+            else:
+                await self.send_message(message, f"❌ Unknown feature: {args[0] if args else 'none specified'}")
     
     def run(self):
         token = self.load_token()
