@@ -1,2 +1,6 @@
 git+https://github.com/dolfies/discord.py-self.git
 aiohttp[speedups]
+
+# Raspberry Pi optimizations
+psutil
+gevent

@@ -1,18 +1,22 @@
-# AutoBoat
+# RaspberryBot
 
-This is a Python bot for Discord accounts that automates the UnbelievaBoat bot to ensure a peak grind of xp and fake currency
+A modular Discord bot framework optimized for Raspberry Pi, with AutoBoat as the first feature.
 
 ## 📚 Table of Contents
 
 - [Features](#-features)
 - [Installation](#-installation)
 - [Usage](#-usage)
+- [Configuration](#-configuration)
 - [Contributing](#-contributing)
 - [License](#-license)
 
 ## 🎁 Features
 
-- Can run any command with any prefix at any integer. Check the config file for details.
+- **Modular Architecture**: Easy to add new features as separate modules
+- **Command System**: Use prefix commands to control features (e.g., `!start autoboat`)
+- **Raspberry Pi Optimized**: Special optimizations for Raspberry Pi hardware
+- **AutoBoat Integration**: Automated UnbelievaBoat bot control
 
 ## 💻 Installation
 
@@ -21,22 +25,17 @@ This is a Python bot for Discord accounts that automates the UnbelievaBoat bot t
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/QuartzWarrior/UnbelievaBoat-AUTO.git
+    git clone <repository-url>
+    cd RaspberryBot
     ```
 
-2. Navigate to the project directory:
-
-    ```bash
-    cd UnbelievaBoat-AUTO
-    ```
-
-3. Run the script:
+2. Run the setup script:
 
     ```bash
     ./run.sh
     ```
 
-4. The script will set up the bot and ask for your Discord token.
+3. The script will set up the bot and ask for your Discord token.
 
 ### Manual Setup
 
@@ -50,34 +49,113 @@ This is a Python bot for Discord accounts that automates the UnbelievaBoat bot t
 2. Install dependencies:
 
     ```bash
-    pip install -U --force-reinstall git+https://github.com/dolfies/discord.py-self.git
-    pip install -U aiohttp[speedups]
+    pip install -r requirements.txt
     ```
+
+3. Configure your bot:
+    - Copy `bot_config.json.example` to `bot_config.json`
+    - Set up your `.env` file with Discord token
+    - Configure AutoBoat in `features/autoboat/config.json`
 
 ## 🚀 Usage
 
-1. Run the bot:
+### Starting the Bot
 
-    ```bash
-    ./run.sh
-    ```
+```bash
+./run.sh
+```
+
+### Bot Commands
+
+- `!help` - Show available commands and features
+- `!start autoboat` - Start the AutoBoat feature
+- `!stop autoboat` - Stop the AutoBoat feature
+- `!start <feature>` - Start any available feature
+- `!stop <feature>` - Stop any running feature
+
+## ⚙️ Configuration
+
+### Main Bot Configuration (`bot_config.json`)
+
+```json
+{
+  "bot": {
+    "prefix": "!",
+    "name": "RaspberryBot",
+    "version": "1.0.0"
+  },
+  "discord": {
+    "token_file": ".env",
+    "status": {
+      "type": "idle",
+      "afk": true
+    }
+  },
+  "features": {
+    "autoboat": {
+      "enabled": true,
+      "config_file": "features/autoboat/config.json"
+    }
+  }
+}
+```
+
+### AutoBoat Configuration (`features/autoboat/config.json`)
+
+Configure your UnbelievaBoat automation settings:
+
+```json
+{
+  "discord": {
+    "channel_id": 123456789012345678
+  },
+  "bot": {
+    "prefix": "/"
+  },
+  "commands": {
+    "work": {
+      "command": "work",
+      "cooldown_minutes": 5,
+      "slash_command_id": null
+    },
+    "collect": {
+      "enabled": true,
+      "command": "collect",
+      "cooldown_minutes": 60,
+      "slash_command_id": null
+    },
+    "deposit": {
+      "command": "deposit",
+      "slash_command_id": null
+    }
+  },
+  "timing": {
+    "response_wait_seconds": 3,
+    "deposit_wait_seconds": 2,
+    "startup_countdown_seconds": 5
+  }
+}
+```
+
+## 🍓 Raspberry Pi Optimizations
+
+This bot includes special optimizations for Raspberry Pi:
+
+- Memory-efficient task management
+- Optimized dependency installation
+- Hardware detection and tuning
+- Reduced CPU usage during idle periods
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check [issues page](https://github.com/dim-ghub/AutoBoat/issues).
+Contributions, issues, and feature requests welcome! Feel free to check [issues page](issues).
 
 ## 📝 License
 
-This project is [MIT](https://opensource.org/licenses/MIT) licensed.
-
-## Problems?
-
-If you have any questions, open an issue and I'll get back to you..
-
-**Enjoy!** 🎉
+This project is [MIT](LICENSE) licensed.
 
 ## Disclaimer
 
----
+> This bot was created for educational purposes only. The developers and contributors do not take any responsibility for your Discord account. ⚠️
 
-> AutoBoat was created for educational purposes only. The developers and contributors do not take any responsibility for your Discord account. ⚠️
+**Enjoy!** 🎉

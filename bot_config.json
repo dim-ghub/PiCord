@@ -1,0 +1,25 @@
+{
+  "bot": {
+    "prefix": "!",
+    "name": "RaspberryBot",
+    "version": "1.0.0"
+  },
+  "discord": {
+    "token_file": ".env",
+    "status": {
+      "type": "idle",
+      "afk": true
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "bot.log",
+    "console": true
+  },
+  "features": {
+    "autoboat": {
+      "enabled": true,
+      "config_file": "features/autoboat/config.json"
+    }
+  }
+}

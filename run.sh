@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# UnbelievaBoat-AUTO Runner Script
-# This script sets up and runs the bot using Python virtual environment
+# RaspberryBot Runner Script
+# Optimized for Raspberry Pi with proper virtual environment setup
 
 set -e
 
@@ -12,7 +12,18 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Starting UnbelievaBoat-AUTO...${NC}"
+echo -e "${GREEN}Starting RaspberryBot...${NC}"
+
+# Check if running on Raspberry Pi
+if [ -f /proc/device-tree/model ]; then
+    MODEL=$(tr -d '\0' < /proc/device-tree/model)
+    if [[ "$MODEL" == *"Raspberry Pi"* ]]; then
+        echo -e "${BLUE}🍓 Detected Raspberry Pi: $MODEL${NC}"
+        # Set Raspberry Pi specific optimizations
+        export PYTHONOPTIMIZE=1
+        export GEVENT_MONKEY_PATCH=1
+    fi
+fi
 
 # Check if virtual environment exists
 if [ ! -d "venv" ]; then
@@ -27,34 +38,26 @@ fi
 echo -e "${YELLOW}Activating virtual environment...${NC}"
 source venv/bin/activate
 
-# Install dependencies only if not installed (using venv's python and pip)
-echo -e "${YELLOW}Checking dependencies...${NC}"
-if ! python -c "import discord" 2>/dev/null; then
-    echo -e "${YELLOW}Installing discord.py-self...${NC}"
-    pip install -U git+https://github.com/dolfies/discord.py-self.git
-else
-    echo -e "${GREEN}✅ discord.py-self already installed${NC}"
-fi
+# Upgrade pip for better performance
+echo -e "${YELLOW}Upgrading pip...${NC}"
+pip install --upgrade pip
 
-if ! python -c "import aiohttp" 2>/dev/null; then
-    echo -e "${YELLOW}Installing aiohttp...${NC}"
-    pip install -U aiohttp[speedups]
-else
-    echo -e "${GREEN}✅ aiohttp already installed${NC}"
-fi
+# Install dependencies
+echo -e "${YELLOW}Installing dependencies...${NC}"
+pip install -r requirements.txt
 
 echo -e "${GREEN}✅ Dependencies ready${NC}"
 
-# Check if main.py exists
-if [ ! -f "main.py" ]; then
-    echo -e "${RED}Error: main.py not found!${NC}"
+# Check if bot.py exists
+if [ ! -f "bot.py" ]; then
+    echo -e "${RED}Error: bot.py not found!${NC}"
     exit 1
 fi
 
-# Check if config.json exists, create default if not
-if [ ! -f "config.json" ]; then
-    echo -e "${YELLOW}⚠️  config.json not found, creating default configuration${NC}"
-    # The default config.json will be created by git checkout or user can copy it
+# Check if bot_config.json exists
+if [ ! -f "bot_config.json" ]; then
+    echo -e "${RED}Error: bot_config.json not found!${NC}"
+    exit 1
 fi
 
 # Check if .env file exists and has valid token, prompt for input if needed
@@ -96,16 +99,14 @@ if [ "$TOKEN_VALID" = false ]; then
     echo -e "${GREEN}✅ Token saved to .env file successfully${NC}"
 fi
 
-# Check if config.json is properly configured
-if [ -f "config.json" ]; then
-    echo -e "${GREEN}✅ Configuration file found${NC}"
-else
-    echo -e "${YELLOW}⚠️  Make sure config.json exists and is configured properly${NC}"
+# Check if AutoBoat config exists
+if [ ! -f "features/autoboat/config.json" ]; then
+    echo -e "${YELLOW}⚠️  AutoBoat config not found, please configure features/autoboat/config.json${NC}"
 fi
 
 # Run the bot
-echo -e "${GREEN}Starting the bot...${NC}"
-python main.py
+echo -e "${GREEN}Starting RaspberryBot...${NC}"
+python bot.py
 
 # Deactivate virtual environment when done
 deactivate
