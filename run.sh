@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# RaspberryBot Runner Script
-# Optimized for Raspberry Pi with proper virtual environment setup
+# PiCord Runner Script
+# Optimized for Discord automation with proper virtual environment setup
 
 set -e
 
@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Starting RaspberryBot...${NC}"
+echo -e "${GREEN}Starting PiCord...${NC}"
 
 # Check if running on Raspberry Pi
 if [ -f /proc/device-tree/model ]; then
@@ -115,7 +115,7 @@ if [ ! -f "features/autoboat/config.json" ]; then
 fi
 
 # Run the bot
-echo -e "${GREEN}Starting RaspberryBot...${NC}"
+echo -e "${GREEN}Starting PiCord...${NC}"
 python bot.py
 
 # Deactivate virtual environment when done

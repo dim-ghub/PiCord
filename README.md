@@ -1,6 +1,6 @@
-# RaspberryBot
+# PiCord
 
-A modular Discord bot framework optimized for Raspberry Pi, with AutoBoat as the first feature.
+A modular Discord automation bot for user accounts (discord.py-self), with AutoBoat as the first feature.
 
 ## 📚 Table of Contents
 
@@ -26,7 +26,7 @@ A modular Discord bot framework optimized for Raspberry Pi, with AutoBoat as the
 
     ```bash
     git clone <repository-url>
-    cd RaspberryBot
+    cd PiCord
     ```
 
 2. Run the setup script:
@@ -80,8 +80,8 @@ A modular Discord bot framework optimized for Raspberry Pi, with AutoBoat as the
 ```json
 {
   "bot": {
-    "prefix": "!",
-    "name": "RaspberryBot",
+    "prefix": ".pc ",
+    "name": "PiCord",
     "version": "1.0.0"
   },
   "discord": {

@@ -11,7 +11,7 @@ import discord
 from discord.ext import tasks
 
 
-class RaspberryBot:
+class PiCordBot:
     def __init__(self, config_path: str = "bot_config.json"):
         self.config_path = config_path
         self.config = self.load_config(config_path)
@@ -261,5 +261,5 @@ class RaspberryBot:
 
 
 if __name__ == "__main__":
-    bot = RaspberryBot()
+    bot = PiCordBot()
     bot.run()
