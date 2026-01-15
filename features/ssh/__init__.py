@@ -108,7 +108,7 @@ class RunFeature:
             prompt = self.get_bash_prompt(username, hostname, cwd)
             terminal_msg = await message.reply(
                 "**🖥️ Terminal Session Started**\n"
-                "Type commands normally. Type `exit` to end the session.\n"
+                "Type commands normally. Use `.pc stop ssh` to end the session.\n"
                 "```\n" +
                 prompt +
                 "```"
@@ -161,9 +161,7 @@ class RunFeature:
                 if cmd_parts and cmd_parts[0] not in allowed_commands:
                     return f"❌ Command `{cmd_parts[0]}` is not allowed!"
             
-            # Handle special commands
-            if command.strip().lower() == 'exit':
-                return "exit"
+            # Don't handle exit command - user must use .pc stop ssh
             
             # Handle cd command specially to preserve working directory
             if command.strip().startswith('cd '):
@@ -280,11 +278,7 @@ class RunFeature:
             # Execute command
             output = await self.execute_command(message, command, session)
             
-            # Check for exit command
-            if output == "exit":
-                await self.end_terminal_session(user_id)
-                # Don't delete the exit message
-                return True
+
             
             # Add output to terminal display
             if output:
