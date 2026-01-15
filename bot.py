@@ -183,19 +183,7 @@ class PiCordBot:
         command = parts[0].lower()
         args = parts[1:] if len(parts) > 1 else []
 
-        if command == "ssh":
-            # Start SSH terminal session
-            if "ssh" in self.features:
-                try:
-                    ssh_feature = self.features["ssh"]
-                    success = await ssh_feature.start_terminal_session(message)
-                    # Don't delete the original command message
-                except Exception as e:
-                    await self.send_message(message, f"❌ Failed to start SSH session: {e}")
-            else:
-                await self.send_message(message, "❌ SSH feature not available")
-        
-        elif command == "start" and args:
+        if command == "start" and args:
             feature_name = args[0].lower()
             if feature_name in self.features:
                 try:
@@ -216,7 +204,13 @@ class PiCordBot:
                             await self.send_message(message, f"⚠️ Invalid channel ID format, using current channel")
                     
                     await self.features[feature_name].start()
-                    await self.send_message(message, f"✅ Started {feature_name} feature!")
+                    
+                    # For SSH, also start a terminal session
+                    if feature_name == "ssh":
+                        ssh_feature = self.features[feature_name]
+                        await ssh_feature.start_terminal_session(message)
+                    else:
+                        await self.send_message(message, f"✅ Started {feature_name} feature!")
                 except Exception as e:
                     await self.send_message(message, f"❌ Failed to start {feature_name}: {e}")
             else:
@@ -241,6 +235,8 @@ class PiCordBot:
             help_text += "**Available features:**\n"
             for feature_name in self.features.keys():
                 help_text += f"- {feature_name}\n"
+            if "ssh" in self.features:
+                help_text += "\n**SSH Terminal:** After starting with `.pc start ssh`, type commands without prefix"
             await self.send_message(message, help_text)
         elif command == "reload":
             try:

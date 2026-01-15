@@ -40,8 +40,26 @@ class RunFeature:
     
     async def start(self):
         """Start the SSH feature"""
+        if self.is_running:
+            self.logger.warning("SSH feature is already running!")
+            return
+        
         self.logger.info("SSH feature started - ready for terminal sessions")
         self.is_running = True
+    
+    async def stop(self):
+        """Stop the SSH feature and end all terminal sessions"""
+        if not self.is_running:
+            self.logger.warning("SSH feature is not running!")
+            return
+        
+        self.logger.info("Stopping SSH feature...")
+        
+        # End all active terminal sessions
+        for user_id in list(self.terminal_sessions.keys()):
+            await self.end_terminal_session(user_id)
+        
+        self.is_running = False
     
     def add_ssh_message_id(self, message_id: int):
         """Add SSH message ID to exclusion list"""
@@ -226,6 +244,10 @@ class RunFeature:
     
     async def handle_terminal_input(self, message: discord.Message) -> bool:
         """Handle input for an active terminal session"""
+        # Only handle terminal input if the SSH feature is running
+        if not self.is_running:
+            return False
+            
         user_id = str(message.author.id)
         
         if user_id not in self.terminal_sessions:
