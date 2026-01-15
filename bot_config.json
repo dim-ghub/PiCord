@@ -25,6 +25,10 @@
     "ssh": {
       "enabled": true,
       "config_file": "features/ssh/config.json"
+    },
+    "settings": {
+      "enabled": true,
+      "config_file": "features/settings/config.json"
     }
   }
 }

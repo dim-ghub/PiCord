@@ -148,6 +148,12 @@ class PiCordBot:
                         await feature.initialize()
                         self.features[feature_name] = feature
                         self.logger.info(f"✅ Loaded feature: {feature_name}")
+                    elif feature_name == "settings":
+                        from features.settings import SettingsFeature
+                        feature = SettingsFeature(self.client, feature_config)
+                        await feature.initialize()
+                        self.features[feature_name] = feature
+                        self.logger.info(f"✅ Loaded feature: {feature_name}")
                 except Exception as e:
                     self.logger.error(f"Failed to load feature {feature_name}: {e}")
     
@@ -240,7 +246,16 @@ class PiCordBot:
                 help_text += f"- {feature_name}\n"
             if "ssh" in self.features:
                 help_text += "\n**SSH Terminal:** After starting with `.pc start ssh`, type commands without prefix"
+            if "settings" in self.features:
+                help_text += "\n**Settings:** Use `.pc setting list` or `.pc setting {key}={value}`"
             await self.send_message(message, help_text)
+        elif command == "setting":
+            # Handle settings commands
+            if "settings" in self.features:
+                settings_feature = self.features["settings"]
+                await settings_feature.handle_settings_command(message, args)
+            else:
+                await self.send_message(message, "❌ Settings feature not available")
         elif command == "reload":
             try:
                 self.config = self.load_config(self.config_path)
