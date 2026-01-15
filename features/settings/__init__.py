@@ -155,6 +155,7 @@ class SettingsFeature:
                 response += f"`{setting_path}` = `{value}`\n"
             
             response += "\n**Usage:** `.pc setting {setting}={new_value}`"
+            response += "\n**Feature settings:** `.pc setting-{feature} list` or `.pc setting-{feature} {key}={value}`"
             
             await message.reply(response)
             return True
@@ -197,6 +198,118 @@ class SettingsFeature:
         else:
             await message.reply("❌ Unknown command! Use `list` or `{setting}={value}` format")
             return True
+    
+    async def handle_feature_settings_command(self, message: Message, feature_name: str, args: list) -> bool:
+        """Handle feature-specific settings commands"""
+        # Check if feature exists and is enabled
+        main_config = self.load_bot_config()
+        features_config = main_config.get("features", {})
+        
+        if feature_name not in features_config:
+            await message.reply(f"❌ Feature `{feature_name}` not found in configuration!")
+            return True
+        
+        feature_config = features_config[feature_name]
+        if not feature_config.get("enabled", False):
+            await message.reply(f"❌ Feature `{feature_name}` is not enabled!")
+            return True
+        
+        config_file = feature_config.get("config_file")
+        if not config_file:
+            await message.reply(f"❌ Feature `{feature_name}` has no config file configured!")
+            return True
+        
+        # Load feature config
+        feature_settings = self.load_feature_config_file(config_file)
+        if not feature_settings:
+            await message.reply(f"❌ Failed to load config file for `{feature_name}`!")
+            return True
+        
+        if not args:
+            await message.reply(f"❌ Missing subcommand! Use `list` or `{{key}}={{value}}`")
+            return True
+        
+        subcommand = args[0].lower()
+        
+        if subcommand == "list":
+            response = f"**🔧 {feature_name.title()} Feature Settings:**\n"
+            response += f"Config file: `{config_file}`\n"
+            response += "Format: `{setting}={current_value}`\n\n"
+            
+            def flatten_dict(d, parent_key='', sep='.'):
+                items = []
+                for k, v in d.items():
+                    new_key = f"{parent_key}{sep}{k}" if parent_key else k
+                    if isinstance(v, dict):
+                        items.extend(flatten_dict(v, new_key, sep=sep).items())
+                    else:
+                        items.append((new_key, v))
+                return dict(items)
+            
+            flat_settings = flatten_dict(feature_settings)
+            
+            for setting_path, value in sorted(flat_settings.items()):
+                response += f"`{setting_path}` = `{value}`\n"
+            
+            response += f"\n**Usage:** `.pc setting-{feature_name} {{setting}}={{new_value}}`"
+            
+            await message.reply(response)
+            return True
+        
+        elif '=' in subcommand:
+            # Parse setting=value format
+            try:
+                setting_path, value = subcommand.split('=', 1)
+                setting_path = setting_path.strip()
+                value = value.strip()
+                
+                # Get current value for comparison
+                current_value = self.get_setting_value(feature_settings, setting_path)
+                
+                # Parse the value to appropriate type
+                parsed_value = self.parse_setting_value(value, current_value)
+                
+                # Set the new value
+                if self.set_setting_value(feature_settings, setting_path, parsed_value):
+                    if self.save_feature_config_file(config_file, feature_settings):
+                        self.logger.info(f"Feature {feature_name} setting changed: {setting_path} = {parsed_value}")
+                        await message.reply(f"✅ Updated `{feature_name}.{setting_path}` = `{parsed_value}`")
+                    else:
+                        await message.reply(f"❌ Failed to save {feature_name} configuration!")
+                else:
+                    await message.reply(f"❌ Invalid setting path: `{setting_path}` in {feature_name}")
+                
+                return True
+                
+            except ValueError:
+                await message.reply("❌ Invalid format! Use: `{setting}={value}`")
+                return True
+        
+        else:
+            await message.reply("❌ Unknown command! Use `list` or `{setting}={value}` format")
+            return True
+    
+    def load_feature_config_file(self, config_file: str) -> Dict[str, Any]:
+        """Load a feature's configuration file"""
+        try:
+            with open(config_file, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            self.logger.error(f"Feature config file {config_file} not found!")
+            return {}
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Invalid JSON in feature config {config_file}: {e}")
+            return {}
+    
+    def save_feature_config_file(self, config_file: str, config: Dict[str, Any]) -> bool:
+        """Save a feature's configuration file"""
+        try:
+            with open(config_file, 'w') as f:
+                json.dump(config, f, indent=2)
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to save feature config {config_file}: {e}")
+            return False
     
     def parse_setting_value(self, value: str, current_value: Any) -> Any:
         """Parse a string value to the appropriate type based on current value"""
