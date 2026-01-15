@@ -3,7 +3,7 @@
     "prefix": ".pc ",
     "name": "PiCord",
     "version": "1.0.0",
-    "silent": true
+    "silent": false
   },
   "discord": {
     "token_file": ".env",
@@ -21,6 +21,10 @@
     "autoboat": {
       "enabled": true,
       "config_file": "features/autoboat/config.json"
+    },
+    "ssh": {
+      "enabled": true,
+      "config_file": "features/ssh/config.json"
     }
   }
 }

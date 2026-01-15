@@ -19,7 +19,6 @@ class PiCordBot:
         self.features = {}
         self.setup_logging()
         self.setup_events()
-        self.setup_config_watcher()
         
     def load_config(self, config_path: str) -> Dict[str, Any]:
         try:
@@ -118,6 +117,7 @@ class PiCordBot:
     async def on_ready(self):
         self.logger.info(f"Bot logged in as {self.client.user}")
         print(f"✅ {self.config['bot']['name']} logged in as {self.client.user}")
+        self.setup_config_watcher()
         
         # Set bot status
         status_config = self.config.get("discord", {}).get("status", {})
@@ -139,6 +139,12 @@ class PiCordBot:
                     if feature_name == "autoboat":
                         from features.autoboat import AutoBoatFeature
                         feature = AutoBoatFeature(self.client, feature_config)
+                        await feature.initialize()
+                        self.features[feature_name] = feature
+                        self.logger.info(f"✅ Loaded feature: {feature_name}")
+                    elif feature_name == "ssh":
+                        from features.ssh import RunFeature
+                        feature = RunFeature(self.client, feature_config)
                         await feature.initialize()
                         self.features[feature_name] = feature
                         self.logger.info(f"✅ Loaded feature: {feature_name}")
