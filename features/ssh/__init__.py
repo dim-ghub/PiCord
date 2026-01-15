@@ -15,6 +15,7 @@ class RunFeature:
         self.config = config
         self.feature_config = self.load_feature_config()
         self.logger = logging.getLogger(f"{__name__}.Run")
+        self.is_running = False
         
         # Terminal sessions management
         self.terminal_sessions = {}  # user_id -> session info
@@ -36,6 +37,11 @@ class RunFeature:
     async def initialize(self):
         """Initialize the SSH feature"""
         self.logger.info("Initializing SSH feature...")
+    
+    async def start(self):
+        """Start the SSH feature"""
+        self.logger.info("SSH feature started - ready for terminal sessions")
+        self.is_running = True
     
     def add_ssh_message_id(self, message_id: int):
         """Add SSH message ID to exclusion list"""
