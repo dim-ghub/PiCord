@@ -245,16 +245,16 @@ class PiCordBot:
             for feature_name in self.features.keys():
                 help_text += f"- {feature_name}\n"
             if "ssh" in self.features:
-                help_text += "\n**SSH Terminal:** After starting with `.pc start ssh`, type commands without prefix"
+                help_text += f"\n**SSH Terminal:** After starting with `{prefix}start ssh`, type commands without prefix"
             if "settings" in self.features:
-                help_text += "\n**Settings:** Use `.pc setting list` or `.pc setting {key}={value}`"
-                help_text += "\n**Feature Settings:** Use `.pc setting-{feature} list` or `.pc setting-{feature} {key}={value}`"
+                help_text += f"\n**Settings:** Use `{prefix}setting list` or `{prefix}setting {{key}}={{value}}`"
+                help_text += f"\n**Feature Settings:** Use `{prefix}setting-{{feature}} list` or `{prefix}setting-{{feature}} {{key}}={{value}}`"
             await self.send_message(message, help_text)
         elif command == "setting":
             # Handle settings commands
             if "settings" in self.features:
                 settings_feature = self.features["settings"]
-                await settings_feature.handle_settings_command(message, args)
+                await settings_feature.handle_settings_command(message, args, prefix)
             else:
                 await self.send_message(message, "❌ Settings feature not available")
         elif command.startswith("setting-"):
@@ -262,7 +262,7 @@ class PiCordBot:
             if "settings" in self.features:
                 feature_name = command[len("setting-"):].lower()
                 settings_feature = self.features["settings"]
-                await settings_feature.handle_feature_settings_command(message, feature_name, args)
+                await settings_feature.handle_feature_settings_command(message, feature_name, args, prefix)
             else:
                 await self.send_message(message, "❌ Settings feature not available")
         elif command == "reload":

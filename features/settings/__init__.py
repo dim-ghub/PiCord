@@ -137,7 +137,7 @@ class SettingsFeature:
         
         return settings
     
-    async def handle_settings_command(self, message: Message, args: list) -> bool:
+    async def handle_settings_command(self, message: Message, args: list, prefix: str) -> bool:
         """Handle settings commands"""
         if not args:
             return False
@@ -154,8 +154,8 @@ class SettingsFeature:
             for setting_path, value in sorted(settings.items()):
                 response += f"`{setting_path}` = `{value}`\n"
             
-            response += "\n**Usage:** `.pc setting {setting}={new_value}`"
-            response += "\n**Feature settings:** `.pc setting-{feature} list` or `.pc setting-{feature} {key}={value}`"
+            response += f"\n**Usage:** `{prefix}setting {{setting}}={{new_value}}`"
+            response += f"\n**Feature settings:** `{prefix}setting-{{feature}} list` or `{prefix}setting-{{feature}} {{key}}={{value}}`"
             
             await message.reply(response)
             return True
@@ -199,7 +199,7 @@ class SettingsFeature:
             await message.reply("❌ Unknown command! Use `list` or `{setting}={value}` format")
             return True
     
-    async def handle_feature_settings_command(self, message: Message, feature_name: str, args: list) -> bool:
+    async def handle_feature_settings_command(self, message: Message, feature_name: str, args: list, prefix: str) -> bool:
         """Handle feature-specific settings commands"""
         # Check if feature exists and is enabled
         main_config = self.load_bot_config()
@@ -251,7 +251,7 @@ class SettingsFeature:
             for setting_path, value in sorted(flat_settings.items()):
                 response += f"`{setting_path}` = `{value}`\n"
             
-            response += f"\n**Usage:** `.pc setting-{feature_name} {{setting}}={{new_value}}`"
+            response += f"\n**Usage:** `{prefix}setting-{feature_name} {{setting}}={{new_value}}`"
             
             await message.reply(response)
             return True
