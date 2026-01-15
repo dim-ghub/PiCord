@@ -159,7 +159,10 @@ class PiCordBot:
 
     async def handle_message(self, message):
         # First, check if this is terminal input for an active SSH session (only for bot user)
-        if message.author == self.client.user and "ssh" in self.features:
+        # But only if it doesn't start with the bot prefix
+        if (message.author == self.client.user and 
+            "ssh" in self.features and 
+            not message.content.startswith(self.config["bot"]["prefix"])):
             ssh_feature = self.features["ssh"]
             terminal_handled = await ssh_feature.handle_terminal_input(message)
             if terminal_handled:
