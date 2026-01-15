@@ -182,8 +182,7 @@ class PiCordBot:
                 try:
                     ssh_feature = self.features["ssh"]
                     success = await ssh_feature.start_terminal_session(message)
-                    if success:
-                        await message.delete()
+                    # Don't delete the original command message
                 except Exception as e:
                     await self.send_message(message, f"❌ Failed to start SSH session: {e}")
             else:
@@ -268,8 +267,8 @@ class PiCordBot:
             else:
                 await self.send_message(message, f"❌ Unknown feature: {args[0] if args else 'none specified'}")
         
-        # Handle terminal input for SSH sessions
-        if "ssh" in self.features:
+        # Handle terminal input for SSH sessions (but only for non-bot commands)
+        if "ssh" in self.features and not message.content.startswith(prefix):
             ssh_feature = self.features["ssh"]
             await ssh_feature.handle_terminal_input(message)
     

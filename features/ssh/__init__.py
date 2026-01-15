@@ -86,9 +86,9 @@ class RunFeature:
                 'created_at': asyncio.get_event_loop().time()
             }
             
-            # Create initial terminal message
+            # Create initial terminal message as a reply
             prompt = self.get_bash_prompt(username, hostname, cwd)
-            terminal_msg = await message.channel.send(
+            terminal_msg = await message.reply(
                 "**🖥️ Terminal Session Started**\n"
                 "Type commands normally. Type `exit` to end the session.\n"
                 "```\n" +
