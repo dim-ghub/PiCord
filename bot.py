@@ -158,6 +158,13 @@ class PiCordBot:
         await message.channel.send(content, reference=message)
 
     async def handle_message(self, message):
+        # First, check if this is terminal input for an active SSH session (only for bot user)
+        if message.author == self.client.user and "ssh" in self.features:
+            ssh_feature = self.features["ssh"]
+            terminal_handled = await ssh_feature.handle_terminal_input(message)
+            if terminal_handled:
+                return  # Message was handled by SSH terminal, don't process as bot command
+        
         # For discord.py-self (user accounts), process messages from self
         # For regular bots, ignore self messages
         if message.author != self.client.user:
@@ -266,11 +273,6 @@ class PiCordBot:
                     await self.send_message(message, f"❌ Failed to restart {feature_name}: {e}")
             else:
                 await self.send_message(message, f"❌ Unknown feature: {args[0] if args else 'none specified'}")
-        
-        # Handle terminal input for SSH sessions (but only for non-bot commands)
-        if "ssh" in self.features and not message.content.startswith(prefix):
-            ssh_feature = self.features["ssh"]
-            await ssh_feature.handle_terminal_input(message)
     
     def run(self):
         token = self.load_token()
