@@ -176,7 +176,20 @@ class PiCordBot:
         command = parts[0].lower()
         args = parts[1:] if len(parts) > 1 else []
 
-        if command == "start" and args:
+        if command == "ssh":
+            # Start SSH terminal session
+            if "ssh" in self.features:
+                try:
+                    ssh_feature = self.features["ssh"]
+                    success = await ssh_feature.start_terminal_session(message)
+                    if success:
+                        await message.delete()
+                except Exception as e:
+                    await self.send_message(message, f"❌ Failed to start SSH session: {e}")
+            else:
+                await self.send_message(message, "❌ SSH feature not available")
+        
+        elif command == "start" and args:
             feature_name = args[0].lower()
             if feature_name in self.features:
                 try:
@@ -254,6 +267,11 @@ class PiCordBot:
                     await self.send_message(message, f"❌ Failed to restart {feature_name}: {e}")
             else:
                 await self.send_message(message, f"❌ Unknown feature: {args[0] if args else 'none specified'}")
+        
+        # Handle terminal input for SSH sessions
+        if "ssh" in self.features:
+            ssh_feature = self.features["ssh"]
+            await ssh_feature.handle_terminal_input(message)
     
     def run(self):
         token = self.load_token()
