@@ -33,6 +33,10 @@
     "updater": {
       "enabled": true,
       "config_file": "apps/updater/config.json"
+    },
+    "panic": {
+      "enabled": true,
+      "config_file": "apps/panic/config.json"
     }
   }
 }

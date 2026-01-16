@@ -160,6 +160,12 @@ class PiCordBot:
                         await app.initialize()
                         self.apps[app_name] = app
                         self.logger.info(f"✅ Loaded app: {app_name}")
+                    elif app_name == "panic":
+                        from apps.panic import PanicFeature
+                        app = PanicFeature(self.client, app_config)
+                        await app.initialize()
+                        self.apps[app_name] = app
+                        self.logger.info(f"✅ Loaded app: {app_name}")
                 except Exception as e:
                     self.logger.error(f"Failed to load app {app_name}: {e}")
     
@@ -265,6 +271,7 @@ class PiCordBot:
             help_text += f"`{prefix}stop <app>` - Stop an app\n"
             help_text += f"`{prefix}reload` - Reload configuration (auto-reloads on file change)\n"
             help_text += f"`{prefix}restart <app>` - Restart an app\n"
+            help_text += f"`{prefix}panic` - 🚨 Immediately kill the bot process\n"
             help_text += f"`{prefix}help` - Show this help\n\n"
             help_text += "**Available apps:**\n"
             for app_name in self.apps.keys():
@@ -274,6 +281,8 @@ class PiCordBot:
             if "settings" in self.apps:
                 help_text += f"\n**Settings:** Use `{prefix}setting list` or `{prefix}setting {{key}}={{value}}`"
                 help_text += f"\n**App Settings:** Use `{prefix}setting-{{app}} list` or `{prefix}setting-{{app}} {{key}}={{value}}`"
+            if "panic" in self.apps:
+                help_text += f"\n⚠️ **Panic:** Use `{prefix}panic` to immediately kill the bot if needed"
             await self.send_message(message, help_text)
         elif command == "setting":
             # Handle settings commands
@@ -321,6 +330,15 @@ class PiCordBot:
                     await self.send_message(message, f"❌ Failed to restart {app_name}: {e}")
             else:
                 await self.send_message(message, f"❌ Unknown feature: {args[0] if args else 'none specified'}")
+        elif command == "panic":
+            if "panic" in self.apps:
+                channel = message.channel
+                await message.delete()  # Delete the panic command for safety
+                await channel.send("🚨 **PANIC ACTIVATED** - Bot shutting down immediately!")
+                panic_feature = self.apps["panic"]
+                await panic_feature.panic()
+            else:
+                await self.send_message(message, "❌ Panic feature not available")
     
     def run(self):
         token = self.load_token()
