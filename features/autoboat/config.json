@@ -1,0 +1,30 @@
+{
+  "discord": {
+    "channel_id": 0
+  },
+  "bot": {
+    "prefix": "/"
+  },
+  "commands": {
+    "work": {
+      "command": "work",
+      "cooldown_minutes": 5,
+      "slash_command_id": 901118136529588281
+    },
+    "collect": {
+      "enabled": false,
+      "command": "collect",
+      "cooldown_minutes": 60,
+      "slash_command_id": null
+    },
+    "deposit": {
+      "command": "deposit",
+      "slash_command_id": 901118136529588275
+    }
+  },
+  "timing": {
+    "response_wait_seconds": 3,
+    "deposit_wait_seconds": 2,
+    "startup_countdown_seconds": 5
+  }
+}
