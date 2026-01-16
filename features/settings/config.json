@@ -1,0 +1,5 @@
+{
+  "description": "Settings management feature for modifying bot configuration",
+  "allowed_users": [],
+  "log_changes": true
+}
