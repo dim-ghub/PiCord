@@ -1,6 +1,9 @@
 {
   "discord": {
-    "channel_id": 0
+    "channel_id": 0,
+    "guild_ids": [
+      0
+    ]
   },
   "bot": {
     "prefix": "/"
@@ -8,14 +11,14 @@
   "commands": {
     "work": {
       "command": "work",
-      "cooldown_minutes": 5,
+      "cooldown_minutes": 241,
       "slash_command_id": 901118136529588281
     },
     "collect": {
       "enabled": false,
       "command": "collect",
-      "cooldown_minutes": 60,
-      "slash_command_id": null
+      "cooldown_minutes": 16,
+      "slash_command_id": 901118136529588278
     },
     "deposit": {
       "command": "deposit",
@@ -23,8 +26,8 @@
     }
   },
   "timing": {
-    "response_wait_seconds": 3,
-    "deposit_wait_seconds": 2,
-    "startup_countdown_seconds": 5
+    "response_wait_seconds": 2,
+    "deposit_wait_seconds": 1,
+    "startup_countdown_seconds": 0
   }
 }
