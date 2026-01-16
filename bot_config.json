@@ -2,13 +2,13 @@
   "bot": {
     "prefix": ".pc ",
     "name": "PiCord",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "silent": false
   },
   "discord": {
     "token_file": ".env",
     "status": {
-      "type": "idle",
+      "type": "online",
       "afk": true
     }
   },
