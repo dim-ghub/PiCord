@@ -1,0 +1,6 @@
+{
+  "allowed_commands": ["*"],
+  "timeout": 30,
+  "description": "Interactive fake terminal session",
+  "allowed_commands_note": "Use [\"*\"] to allow all commands, or specify a list like [\"ls\", \"pwd\", \"cd\", \"cat\"]"
+}

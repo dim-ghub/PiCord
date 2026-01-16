@@ -1,0 +1,27 @@
+{
+  "description": "Updater app for managing bot updates via git pull and script restart",
+  "git": {
+    "timeout_seconds": 30,
+    "remote": "origin",
+    "branch": "main"
+  },
+  "restart": {
+    "script_path": "~/PiCord/run.sh",
+    "delay_seconds": 2,
+    "method": "psutil"
+  },
+  "safety": {
+    "require_clean_working_dir": true,
+    "backup_before_update": false,
+    "confirm_update": false
+  },
+  "logging": {
+    "log_commands": true,
+    "log_git_output": true
+  },
+  "permissions": {
+    "allowed_users": [],
+    "allowed_roles": [],
+    "admin_only": true
+  }
+}
