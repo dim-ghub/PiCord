@@ -29,6 +29,10 @@
     "settings": {
       "enabled": true,
       "config_file": "apps/settings/config.json"
+    },
+    "updater": {
+      "enabled": true,
+      "config_file": "apps/updater/config.json"
     }
   }
 }

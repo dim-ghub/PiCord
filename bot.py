@@ -154,6 +154,12 @@ class PiCordBot:
                         await app.initialize()
                         self.apps[app_name] = app
                         self.logger.info(f"✅ Loaded app: {app_name}")
+                    elif app_name == "updater":
+                        from apps.updater import UpdaterFeature
+                        app = UpdaterFeature(self.client, app_config)
+                        await app.initialize()
+                        self.apps[app_name] = app
+                        self.logger.info(f"✅ Loaded app: {app_name}")
                 except Exception as e:
                     self.logger.error(f"Failed to load app {app_name}: {e}")
     
@@ -192,7 +198,24 @@ class PiCordBot:
         command = parts[0].lower()
         args = parts[1:] if len(parts) > 1 else []
 
-        if command == "start" and args:
+        # Handle updater commands first
+        if command == "update":
+            if "updater" in self.apps:
+                updater_app = self.apps["updater"]
+                updater_app.current_channel = message.channel
+                updater_app.override_channel = None
+                await updater_app.handle_update_command(message)
+            else:
+                await self.send_message(message, "❌ Updater app not available")
+        elif command == "status" and args and args[0].lower() == "git":
+            if "updater" in self.apps:
+                updater_app = self.apps["updater"]
+                updater_app.current_channel = message.channel
+                updater_app.override_channel = None
+                await updater_app.handle_status_command(message)
+            else:
+                await self.send_message(message, "❌ Updater app not available")
+        elif command == "start" and args:
             app_name = args[0].lower()
             if app_name in self.apps:
                 try:
@@ -236,6 +259,8 @@ class PiCordBot:
                 await self.send_message(message, f"❌ Unknown app: {app_name}")
         elif command == "help":
             help_text = f"**{self.config['bot']['name']} Commands:**\n"
+            help_text += f"`{prefix}update` - Update bot from git and restart\n"
+            help_text += f"`{prefix}status git` - Check git status for updates\n"
             help_text += f"`{prefix}start <app> [channel_id]` - Start an app\n"
             help_text += f"`{prefix}stop <app>` - Stop an app\n"
             help_text += f"`{prefix}reload` - Reload configuration (auto-reloads on file change)\n"

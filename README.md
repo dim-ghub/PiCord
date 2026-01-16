@@ -17,6 +17,7 @@ A modular Discord automation bot for user accounts (discord.py-self), with AutoB
 - **Command System**: Use prefix commands to control apps (e.g., `!start autoboat`)
 - **Raspberry Pi Optimized**: Special optimizations for Raspberry Pi hardware
 - **AutoBoat Integration**: Automated UnbelievaBoat bot control
+- **Auto Updater**: Git-based update system with automatic restart
 
 ## 💻 Installation
 
@@ -68,6 +69,8 @@ A modular Discord automation bot for user accounts (discord.py-self), with AutoB
 ### Bot Commands
 
 - `!help` - Show available commands and apps
+- `!update` - Update bot from git and restart
+- `!status git` - Check git status for available updates
 - `!start autoboat` - Start the AutoBoat app
 - `!stop autoboat` - Stop the AutoBoat app
 - `!start <app>` - Start any available app
@@ -95,6 +98,10 @@ A modular Discord automation bot for user accounts (discord.py-self), with AutoB
     "autoboat": {
       "enabled": true,
       "config_file": "apps/autoboat/config.json"
+    },
+    "updater": {
+      "enabled": true,
+      "config_file": "apps/updater/config.json"
     }
   }
 }
@@ -133,6 +140,40 @@ Configure your UnbelievaBoat automation settings:
     "response_wait_seconds": 3,
     "deposit_wait_seconds": 2,
     "startup_countdown_seconds": 5
+  }
+}
+```
+
+### Updater Configuration (`apps/updater/config.json`)
+
+Configure the automatic update system:
+
+```json
+{
+  "description": "Updater app for managing bot updates via git pull and script restart",
+  "git": {
+    "timeout_seconds": 30,
+    "remote": "origin",
+    "branch": "main"
+  },
+  "restart": {
+    "script_path": "~/PiCord/run.sh",
+    "delay_seconds": 2,
+    "method": "psutil"
+  },
+  "safety": {
+    "require_clean_working_dir": true,
+    "backup_before_update": false,
+    "confirm_update": false
+  },
+  "logging": {
+    "log_commands": true,
+    "log_git_output": true
+  },
+  "permissions": {
+    "allowed_users": [],
+    "allowed_roles": [],
+    "admin_only": true
   }
 }
 ```
