@@ -110,8 +110,8 @@ if [ "$TOKEN_VALID" = false ]; then
 fi
 
 # Check if AutoBoat config exists
-if [ ! -f "features/autoboat/config.json" ]; then
-    echo -e "${YELLOW}⚠️  AutoBoat config not found, please configure features/autoboat/config.json${NC}"
+if [ ! -f "apps/autoboat/config.json" ]; then
+    echo -e "${YELLOW}⚠️  AutoBoat config not found, please configure apps/autoboat/config.json${NC}"
 fi
 
 # Run the bot

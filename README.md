@@ -4,17 +4,17 @@ A modular Discord automation bot for user accounts (discord.py-self), with AutoB
 
 ## 📚 Table of Contents
 
-- [Features](#-features)
+- [Apps](#-apps)
 - [Installation](#-installation)
 - [Usage](#-usage)
 - [Configuration](#-configuration)
 - [Contributing](#-contributing)
 - [License](#-license)
 
-## 🎁 Features
+## 🎁 Apps
 
-- **Modular Architecture**: Easy to add new features as separate modules
-- **Command System**: Use prefix commands to control features (e.g., `!start autoboat`)
+- **Modular Architecture**: Easy to add new apps as separate modules
+- **Command System**: Use prefix commands to control apps (e.g., `!start autoboat`)
 - **Raspberry Pi Optimized**: Special optimizations for Raspberry Pi hardware
 - **AutoBoat Integration**: Automated UnbelievaBoat bot control
 
@@ -55,7 +55,7 @@ A modular Discord automation bot for user accounts (discord.py-self), with AutoB
 3. Configure your bot:
     - Copy `bot_config.json.example` to `bot_config.json`
     - Set up your `.env` file with Discord token
-    - Configure AutoBoat in `features/autoboat/config.json`
+    - Configure AutoBoat in `apps/autoboat/config.json`
 
 ## 🚀 Usage
 
@@ -67,11 +67,11 @@ A modular Discord automation bot for user accounts (discord.py-self), with AutoB
 
 ### Bot Commands
 
-- `!help` - Show available commands and features
-- `!start autoboat` - Start the AutoBoat feature
-- `!stop autoboat` - Stop the AutoBoat feature
-- `!start <feature>` - Start any available feature
-- `!stop <feature>` - Stop any running feature
+- `!help` - Show available commands and apps
+- `!start autoboat` - Start the AutoBoat app
+- `!stop autoboat` - Stop the AutoBoat app
+- `!start <app>` - Start any available app
+- `!stop <app>` - Stop any running app
 
 ## ⚙️ Configuration
 
@@ -91,16 +91,16 @@ A modular Discord automation bot for user accounts (discord.py-self), with AutoB
       "afk": true
     }
   },
-  "features": {
+  "apps": {
     "autoboat": {
       "enabled": true,
-      "config_file": "features/autoboat/config.json"
+      "config_file": "apps/autoboat/config.json"
     }
   }
 }
 ```
 
-### AutoBoat Configuration (`features/autoboat/config.json`)
+### AutoBoat Configuration (`apps/autoboat/config.json`)
 
 Configure your UnbelievaBoat automation settings:
 

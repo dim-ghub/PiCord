@@ -17,18 +17,18 @@
     "file": "bot.log",
     "console": true
   },
-  "features": {
+  "apps": {
     "autoboat": {
       "enabled": true,
-      "config_file": "features/autoboat/config.json"
+      "config_file": "apps/autoboat/config.json"
     },
     "ssh": {
       "enabled": true,
-      "config_file": "features/ssh/config.json"
+      "config_file": "apps/ssh/config.json"
     },
     "settings": {
       "enabled": true,
-      "config_file": "features/settings/config.json"
+      "config_file": "apps/settings/config.json"
     }
   }
 }

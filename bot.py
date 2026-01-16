@@ -16,7 +16,7 @@ class PiCordBot:
         self.config_path = config_path
         self.config = self.load_config(config_path)
         self.client = discord.Client()
-        self.features = {}
+        self.apps = {}
         self.setup_logging()
         self.setup_events()
         
@@ -80,39 +80,39 @@ class PiCordBot:
                     self.logger.info("🔄 Main config changed, reloading...")
                     self.config = self.load_config(self.config_path)
                     self._config_mtime = current_mtime
-                    await self.reload_features_config()
+                    await self.reload_apps_config()
                 elif not hasattr(self, '_config_mtime'):
                     self._config_mtime = current_mtime
                 
-                # Check feature configs
-                for feature_name, feature_config in self.features.items():
-                    if hasattr(feature_config, 'config') and 'config_file' in feature_config.config:
-                        feature_config_path = feature_config.config['config_file']
-                        if Path(feature_config_path).exists():
-                            feature_mtime = Path(feature_config_path).stat().st_mtime
-                            feature_mtime_key = f'_{feature_name}_config_mtime'
+                # Check app configs
+                for app_name, app_config in self.apps.items():
+                    if hasattr(app_config, 'config') and 'config_file' in app_config.config:
+                        app_config_path = app_config.config['config_file']
+                        if Path(app_config_path).exists():
+                            app_mtime = Path(app_config_path).stat().st_mtime
+                            app_mtime_key = f'_{app_name}_config_mtime'
                             
-                            if hasattr(self, feature_mtime_key) and feature_mtime != getattr(self, feature_mtime_key):
-                                self.logger.info(f"🔄 {feature_name} config changed, reloading...")
-                                feature_config.feature_config = feature_config.load_feature_config()
-                                setattr(self, feature_mtime_key, feature_mtime)
-                            elif not hasattr(self, feature_mtime_key):
-                                setattr(self, feature_mtime_key, feature_mtime)
+                            if hasattr(self, app_mtime_key) and app_mtime != getattr(self, app_mtime_key):
+                                self.logger.info(f"🔄 {app_name} config changed, reloading...")
+                                app_config.feature_config = app_config.load_feature_config()
+                                setattr(self, app_mtime_key, app_mtime)
+                            elif not hasattr(self, app_mtime_key):
+                                setattr(self, app_mtime_key, app_mtime)
                                 
             except Exception as e:
                 self.logger.error(f"Error in config watcher: {e}")
         
         config_watcher.start()
     
-    async def reload_features_config(self):
-        """Reload all feature configurations"""
-        for feature_name, feature in self.features.items():
-            if hasattr(feature, 'feature_config'):
+    async def reload_apps_config(self):
+        """Reload all app configurations"""
+        for app_name, app in self.apps.items():
+            if hasattr(app, 'feature_config'):
                 try:
-                    feature.feature_config = feature.load_feature_config()
-                    self.logger.info(f"✅ Reloaded {feature_name} config")
+                    app.feature_config = app.load_feature_config()
+                    self.logger.info(f"✅ Reloaded {app_name} config")
                 except Exception as e:
-                    self.logger.error(f"❌ Failed to reload {feature_name} config: {e}")
+                    self.logger.error(f"❌ Failed to reload {app_name} config: {e}")
     
     async def on_ready(self):
         self.logger.info(f"Bot logged in as {self.client.user}")
@@ -124,38 +124,38 @@ class PiCordBot:
         if status_config.get("type") == "idle":
             await self.client.change_presence(status=discord.Status.idle, afk=status_config.get("afk", False))
         
-        # Load features
-        await self.load_features()
+        # Load apps
+        await self.load_apps()
         
         self.logger.info("✅ Bot started successfully!")
         print("✅ Bot is ready!")
     
-    async def load_features(self):
-        features_config = self.config.get("features", {})
+    async def load_apps(self):
+        apps_config = self.config.get("apps", {})
         
-        for feature_name, feature_config in features_config.items():
-            if feature_config.get("enabled", False):
+        for app_name, app_config in apps_config.items():
+            if app_config.get("enabled", False):
                 try:
-                    if feature_name == "autoboat":
-                        from features.autoboat import AutoBoatFeature
-                        feature = AutoBoatFeature(self.client, feature_config)
-                        await feature.initialize()
-                        self.features[feature_name] = feature
-                        self.logger.info(f"✅ Loaded feature: {feature_name}")
-                    elif feature_name == "ssh":
-                        from features.ssh import RunFeature
-                        feature = RunFeature(self.client, feature_config)
-                        await feature.initialize()
-                        self.features[feature_name] = feature
-                        self.logger.info(f"✅ Loaded feature: {feature_name}")
-                    elif feature_name == "settings":
-                        from features.settings import SettingsFeature
-                        feature = SettingsFeature(self.client, feature_config)
-                        await feature.initialize()
-                        self.features[feature_name] = feature
-                        self.logger.info(f"✅ Loaded feature: {feature_name}")
+                    if app_name == "autoboat":
+                        from apps.autoboat import AutoBoatFeature
+                        app = AutoBoatFeature(self.client, app_config)
+                        await app.initialize()
+                        self.apps[app_name] = app
+                        self.logger.info(f"✅ Loaded app: {app_name}")
+                    elif app_name == "ssh":
+                        from apps.ssh import RunFeature
+                        app = RunFeature(self.client, app_config)
+                        await app.initialize()
+                        self.apps[app_name] = app
+                        self.logger.info(f"✅ Loaded app: {app_name}")
+                    elif app_name == "settings":
+                        from apps.settings import SettingsFeature
+                        app = SettingsFeature(self.client, app_config)
+                        await app.initialize()
+                        self.apps[app_name] = app
+                        self.logger.info(f"✅ Loaded app: {app_name}")
                 except Exception as e:
-                    self.logger.error(f"Failed to load feature {feature_name}: {e}")
+                    self.logger.error(f"Failed to load app {app_name}: {e}")
     
     async def send_message(self, message, content, silent=False):
         if silent or self.config['bot'].get('silent', False):
@@ -167,9 +167,9 @@ class PiCordBot:
         # First, check if this is terminal input for an active SSH session (only for bot user)
         # But only if it doesn't start with the bot prefix
         if (message.author == self.client.user and 
-            "ssh" in self.features and 
+            "ssh" in self.apps and 
             not message.content.startswith(self.config["bot"]["prefix"])):
-            ssh_feature = self.features["ssh"]
+            ssh_feature = self.apps["ssh"]
             terminal_handled = await ssh_feature.handle_terminal_input(message)
             if terminal_handled:
                 return  # Message was handled by SSH terminal, don't process as bot command
@@ -193,11 +193,11 @@ class PiCordBot:
         args = parts[1:] if len(parts) > 1 else []
 
         if command == "start" and args:
-            feature_name = args[0].lower()
-            if feature_name in self.features:
+            app_name = args[0].lower()
+            if app_name in self.apps:
                 try:
-                    # Pass current channel to feature for fallback
-                    self.features[feature_name].current_channel = message.channel
+                    # Pass current channel to app for fallback
+                    self.apps[app_name].current_channel = message.channel
                     
                     # Check if a channel ID was provided
                     if len(args) > 1:
@@ -205,95 +205,95 @@ class PiCordBot:
                             channel_id = int(args[1])
                             override_channel = self.client.get_channel(channel_id)
                             if override_channel:
-                                self.features[feature_name].override_channel = override_channel
+                                self.apps[app_name].override_channel = override_channel
                                 self.logger.info(f"Using channel override: {channel_id}")
                             else:
                                 await self.send_message(message, f"⚠️ Could not find channel {channel_id}, using current channel")
                         except ValueError:
                             await self.send_message(message, f"⚠️ Invalid channel ID format, using current channel")
                     
-                    await self.features[feature_name].start()
+                    await self.apps[app_name].start()
                     
                     # For SSH, also start a terminal session
-                    if feature_name == "ssh":
-                        ssh_feature = self.features[feature_name]
+                    if app_name == "ssh":
+                        ssh_feature = self.apps[app_name]
                         await ssh_feature.start_terminal_session(message)
                     else:
-                        await self.send_message(message, f"✅ Started {feature_name} feature!")
+                        await self.send_message(message, f"✅ Started {app_name} app!")
                 except Exception as e:
-                    await self.send_message(message, f"❌ Failed to start {feature_name}: {e}")
+                    await self.send_message(message, f"❌ Failed to start {app_name}: {e}")
             else:
-                await self.send_message(message, f"❌ Unknown feature: {feature_name}")
+                await self.send_message(message, f"❌ Unknown app: {app_name}")
         elif command == "stop" and args:
-            feature_name = args[0].lower()
-            if feature_name in self.features:
+            app_name = args[0].lower()
+            if app_name in self.apps:
                 try:
-                    await self.features[feature_name].stop()
-                    await self.send_message(message, f"✅ Stopped {feature_name} feature!")
+                    await self.apps[app_name].stop()
+                    await self.send_message(message, f"✅ Stopped {app_name} app!")
                 except Exception as e:
-                    await self.send_message(message, f"❌ Failed to stop {feature_name}: {e}")
+                    await self.send_message(message, f"❌ Failed to stop {app_name}: {e}")
             else:
-                await self.send_message(message, f"❌ Unknown feature: {feature_name}")
+                await self.send_message(message, f"❌ Unknown app: {app_name}")
         elif command == "help":
             help_text = f"**{self.config['bot']['name']} Commands:**\n"
-            help_text += f"`{prefix}start <feature> [channel_id]` - Start a feature\n"
-            help_text += f"`{prefix}stop <feature>` - Stop a feature\n"
+            help_text += f"`{prefix}start <app> [channel_id]` - Start an app\n"
+            help_text += f"`{prefix}stop <app>` - Stop an app\n"
             help_text += f"`{prefix}reload` - Reload configuration (auto-reloads on file change)\n"
-            help_text += f"`{prefix}restart <feature>` - Restart a feature\n"
+            help_text += f"`{prefix}restart <app>` - Restart an app\n"
             help_text += f"`{prefix}help` - Show this help\n\n"
-            help_text += "**Available features:**\n"
-            for feature_name in self.features.keys():
-                help_text += f"- {feature_name}\n"
-            if "ssh" in self.features:
+            help_text += "**Available apps:**\n"
+            for app_name in self.apps.keys():
+                help_text += f"- {app_name}\n"
+            if "ssh" in self.apps:
                 help_text += f"\n**SSH Terminal:** After starting with `{prefix}start ssh`, type commands without prefix"
-            if "settings" in self.features:
+            if "settings" in self.apps:
                 help_text += f"\n**Settings:** Use `{prefix}setting list` or `{prefix}setting {{key}}={{value}}`"
-                help_text += f"\n**Feature Settings:** Use `{prefix}setting-{{feature}} list` or `{prefix}setting-{{feature}} {{key}}={{value}}`"
+                help_text += f"\n**App Settings:** Use `{prefix}setting-{{app}} list` or `{prefix}setting-{{app}} {{key}}={{value}}`"
             await self.send_message(message, help_text)
         elif command == "setting":
             # Handle settings commands
-            if "settings" in self.features:
-                settings_feature = self.features["settings"]
+            if "settings" in self.apps:
+                settings_feature = self.apps["settings"]
                 await settings_feature.handle_settings_command(message, args, prefix)
             else:
-                await self.send_message(message, "❌ Settings feature not available")
+                await self.send_message(message, "❌ Settings app not available")
         elif command.startswith("setting-"):
-            # Handle feature-specific settings commands
-            if "settings" in self.features:
-                feature_name = command[len("setting-"):].lower()
-                settings_feature = self.features["settings"]
-                await settings_feature.handle_feature_settings_command(message, feature_name, args, prefix)
+            # Handle app-specific settings commands
+            if "settings" in self.apps:
+                app_name = command[len("setting-"):].lower()
+                settings_feature = self.apps["settings"]
+                await settings_feature.handle_feature_settings_command(message, app_name, args, prefix)
             else:
-                await self.send_message(message, "❌ Settings feature not available")
+                await self.send_message(message, "❌ Settings app not available")
         elif command == "reload":
             try:
                 self.config = self.load_config(self.config_path)
-                await self.reload_features_config()
+                await self.reload_apps_config()
                 await self.send_message(message, f"✅ Configuration reloaded successfully!")
                 self.logger.info("🔄 Configuration manually reloaded")
             except Exception as e:
                 await self.send_message(message, f"❌ Failed to reload config: {e}")
                 self.logger.error(f"Failed to reload config: {e}")
         elif command == "restart":
-            if args and args[0].lower() in self.features:
-                feature_name = args[0].lower()
+            if args and args[0].lower() in self.apps:
+                app_name = args[0].lower()
                 try:
-                    feature = self.features[feature_name]
-                    was_running = feature.is_running if hasattr(feature, 'is_running') else False
+                    app = self.apps[app_name]
+                    was_running = app.is_running if hasattr(app, 'is_running') else False
                     
                     if was_running:
-                        await feature.stop()
+                        await app.stop()
                         await asyncio.sleep(1)  # Brief pause
                     
-                    await feature.initialize()
+                    await app.initialize()
                     
                     if was_running:
-                        await feature.start()
+                        await app.start()
                     
-                    await self.send_message(message, f"✅ Restarted {feature_name} feature!")
-                    self.logger.info(f"🔄 Restarted {feature_name} feature")
+                    await self.send_message(message, f"✅ Restarted {app_name} app!")
+                    self.logger.info(f"🔄 Restarted {app_name} app")
                 except Exception as e:
-                    await self.send_message(message, f"❌ Failed to restart {feature_name}: {e}")
+                    await self.send_message(message, f"❌ Failed to restart {app_name}: {e}")
             else:
                 await self.send_message(message, f"❌ Unknown feature: {args[0] if args else 'none specified'}")
     
