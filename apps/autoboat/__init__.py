@@ -199,6 +199,8 @@ class AutoBoatFeature:
                         await self.deposit(channel)  # Deposit your newly earned money
                     except Exception as e:
                         self.logger.error(f"Failed to execute work slash command: {e}")
+                        # Immediate retry with exponential backoff
+                        await self.retry_work_with_backoff(channel, attempt=1)
                 else:
                     self.logger.error("Work slash command not found!")
             else:
@@ -215,6 +217,8 @@ class AutoBoatFeature:
                     await self.deposit(channel)
                 except Exception as e:
                     self.logger.error(f"Failed to send work command: {e}")
+                    # Immediate retry with exponential backoff
+                    await self.retry_work_with_backoff(channel, attempt=1)
         except Exception as e:
             self.logger.error(f"Error in auto_work task: {e}")
     
@@ -244,6 +248,8 @@ class AutoBoatFeature:
                         await self.deposit(channel)  # Deposit your newly earned money
                     except Exception as e:
                         self.logger.error(f"Failed to execute collect slash command: {e}")
+                        # Immediate retry with exponential backoff
+                        await self.retry_collect_with_backoff(channel, attempt=1)
                 else:
                     self.logger.error("Collect slash command not found!")
             else:
@@ -260,6 +266,8 @@ class AutoBoatFeature:
                     await self.deposit(channel)
                 except Exception as e:
                     self.logger.error(f"Failed to send collect command: {e}")
+                    # Immediate retry with exponential backoff
+                    await self.retry_collect_with_backoff(channel, attempt=1)
         except Exception as e:
             self.logger.error(f"Error in auto_collect task: {e}")
     
@@ -293,3 +301,87 @@ class AutoBoatFeature:
                 self.logger.info("Deposit command sent successfully")
             except Exception as e:
                 self.logger.error(f"Failed to send deposit command: {e}")
+    
+    async def retry_work_with_backoff(self, channel: TextChannel, attempt: int, max_attempts: int = 3):
+        """Retry work command with exponential backoff"""
+        if attempt > max_attempts:
+            self.logger.error(f"Work command failed after {max_attempts} retry attempts")
+            return
+        
+        # Calculate exponential backoff delay (2^attempt seconds, max 30 seconds)
+        delay = min(2 ** attempt, 30)
+        self.logger.info(f"Retrying work command in {delay} seconds (attempt {attempt}/{max_attempts})")
+        await sleep(delay)
+        
+        try:
+            prefix = self.feature_config['bot']['prefix']
+            
+            if prefix == "/":
+                if self.work_slash_cmd:
+                    self.logger.info(f"Retry attempt {attempt}: Running work slash command")
+                    await self.work_slash_cmd.__call__(channel=channel)
+                    self.logger.info(f"Work slash command executed successfully on retry {attempt}")
+                    
+                    # Wait for response and deposit
+                    await sleep(self.feature_config['timing']['response_wait_seconds'])
+                    await self.deposit(channel)
+                else:
+                    self.logger.error("Work slash command not found during retry!")
+            else:
+                command = self.feature_config['commands']['work']['command']
+                message = f"{prefix} {command}"
+                
+                self.logger.info(f"Retry attempt {attempt}: Running work command: {message}")
+                await channel.send(message)
+                self.logger.info(f"Work command sent successfully on retry {attempt}")
+                
+                # Wait for response and deposit
+                await sleep(self.feature_config['timing']['response_wait_seconds'])
+                await self.deposit(channel)
+                
+        except Exception as e:
+            self.logger.error(f"Retry attempt {attempt} failed: {e}")
+            # Recursive retry with next attempt
+            await self.retry_work_with_backoff(channel, attempt + 1, max_attempts)
+    
+    async def retry_collect_with_backoff(self, channel: TextChannel, attempt: int, max_attempts: int = 3):
+        """Retry collect command with exponential backoff"""
+        if attempt > max_attempts:
+            self.logger.error(f"Collect command failed after {max_attempts} retry attempts")
+            return
+        
+        # Calculate exponential backoff delay (2^attempt seconds, max 30 seconds)
+        delay = min(2 ** attempt, 30)
+        self.logger.info(f"Retrying collect command in {delay} seconds (attempt {attempt}/{max_attempts})")
+        await sleep(delay)
+        
+        try:
+            prefix = self.feature_config['bot']['prefix']
+            
+            if prefix == "/":
+                if self.collect_slash_cmd:
+                    self.logger.info(f"Retry attempt {attempt}: Running collect slash command")
+                    await self.collect_slash_cmd.__call__(channel=channel)
+                    self.logger.info(f"Collect slash command executed successfully on retry {attempt}")
+                    
+                    # Wait for response and deposit
+                    await sleep(self.feature_config['timing']['response_wait_seconds'])
+                    await self.deposit(channel)
+                else:
+                    self.logger.error("Collect slash command not found during retry!")
+            else:
+                command = self.feature_config['commands']['collect']['command']
+                message = f"{prefix} {command}"
+                
+                self.logger.info(f"Retry attempt {attempt}: Running collect command: {message}")
+                await channel.send(message)
+                self.logger.info(f"Collect command sent successfully on retry {attempt}")
+                
+                # Wait for response and deposit
+                await sleep(self.feature_config['timing']['response_wait_seconds'])
+                await self.deposit(channel)
+                
+        except Exception as e:
+            self.logger.error(f"Retry attempt {attempt} failed: {e}")
+            # Recursive retry with next attempt
+            await self.retry_collect_with_backoff(channel, attempt + 1, max_attempts)
