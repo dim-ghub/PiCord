@@ -4,3 +4,6 @@ aiohttp[speedups]
 # Raspberry Pi optimizations
 psutil
 gevent
+
+# DNS fallback support
+dnspython

@@ -2,21 +2,50 @@ import asyncio
 import json
 import logging
 import os
+import subprocess
 import sys
+import socket
+import time
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from pathlib import Path
 
 import discord
 from discord.ext import tasks
 
 
+class ResilientDiscordClient(discord.Client):
+    """Custom Discord client with multi-gateway support"""
+    
+    def __init__(self, gateway_endpoints: list, **kwargs):
+        super().__init__(**kwargs)
+        self.gateway_endpoints = gateway_endpoints
+        self.current_gateway_index = 0
+    
+    def get_next_gateway(self) -> str:
+        """Get the next gateway URL to try"""
+        gateway = self.gateway_endpoints[self.current_gateway_index]
+        self.current_gateway_index = (self.current_gateway_index + 1) % len(self.gateway_endpoints)
+        return f"wss://{gateway}/?v=10&encoding=json"
+
+
 class PiCordBot:
     def __init__(self, config_path: str = "bot_config.json"):
         self.config_path = config_path
         self.config = self.load_config(config_path)
-        self.client = discord.Client()
+        
+        self.gateway_endpoints = [
+            "gateway-us-east1-c.discord.gg",
+            "gateway-us-east1-b.discord.gg",
+            "gateway-us-central1-a.discord.gg",
+            "gateway-eu-west1-b.discord.gg"
+        ]
+        
+        self.client = ResilientDiscordClient(self.gateway_endpoints)
         self.apps = {}
+        self._config_mtime = None
+        self.reconnect_attempts = 0
+        self.max_reconnect_attempts = 10
         self.setup_logging()
         self.setup_events()
         
@@ -48,7 +77,7 @@ class PiCordBot:
         )
         self.logger = logging.getLogger(__name__)
     
-    def load_token(self) -> str:
+    def load_token(self) -> Optional[str]:
         token_file = self.config["discord"]["token_file"]
         try:
             with open(token_file, 'r') as f:
@@ -340,6 +369,57 @@ class PiCordBot:
             else:
                 await self.send_message(message, "❌ Panic feature not available")
     
+    def check_network_connectivity(self, host: str = "discord.com", port: int = 443, timeout: int = 5) -> bool:
+        """Check if network connectivity to Discord is available"""
+        try:
+            socket.create_connection((host, port), timeout=timeout).close()
+            return True
+        except (socket.timeout, socket.error, OSError):
+            return False
+    
+    def resolve_gateway_fallback(self, hostname: str) -> Optional[str]:
+        """Resolve gateway hostname with multiple DNS fallback attempts"""
+        for attempt in range(3):
+            try:
+                # Try system DNS first
+                result = socket.gethostbyname(hostname)
+                self.logger.info(f"Resolved {hostname} to {result} (attempt {attempt + 1})")
+                return result
+            except socket.gaierror:
+                if attempt == 0:
+                    # Try alternative DNS resolution methods
+                    try:
+                        # Try a different approach using subprocess to nslookup
+                        result = subprocess.run(['nslookup', hostname], 
+                                               capture_output=True, text=True, timeout=10)
+                        if result.returncode == 0:
+                            # Parse nslookup output for IP address
+                            lines = result.stdout.split('\n')
+                            for line in lines:
+                                if 'Address:' in line and not line.startswith('Server:'):
+                                    ip = line.split('Address:')[-1].strip()
+                                    # Filter out invalid DNS server addresses like 127.0.0.53#53
+                                    if ip and '.' in ip and not ip.startswith('127.0.0.') and not ip.startswith('::1'):
+                                        self.logger.info(f"Resolved {hostname} to {ip} via nslookup")
+                                        return ip
+                    except (subprocess.TimeoutExpired, subprocess.SubprocessError, Exception) as e:
+                        self.logger.debug(f"Alternative DNS resolution failed: {e}")
+                
+                if attempt < 2:
+                    self.logger.warning(f"DNS resolution attempt {attempt + 1} failed for {hostname}, retrying...")
+                    time.sleep(1)
+        
+        self.logger.error(f"Failed to resolve {hostname} after 3 attempts")
+        return None
+    
+    def exponential_backoff(self, attempt: int) -> float:
+        """Calculate exponential backoff delay with jitter"""
+        base_delay = 2.0
+        max_delay = 300.0
+        delay = min(base_delay ** attempt, max_delay)
+        jitter = delay * 0.1 * (0.5 - (hash(str(attempt)) % 100) / 100)
+        return delay + jitter
+    
     def run(self):
         token = self.load_token()
         if not token:
@@ -348,7 +428,34 @@ class PiCordBot:
             sys.exit(1)
         
         self.logger.info("Starting bot...")
-        self.client.run(token)
+        
+        # Enhanced connection handling with retries
+        while self.reconnect_attempts < self.max_reconnect_attempts:
+            try:
+                # Check network connectivity first
+                if not self.check_network_connectivity():
+                    self.logger.error("Network connectivity check failed!")
+                    delay = self.exponential_backoff(self.reconnect_attempts)
+                    self.logger.info(f"Retrying connection in {delay:.1f} seconds...")
+                    time.sleep(delay)
+                    self.reconnect_attempts += 1
+                    continue
+                
+                # Attempt to run the bot
+                self.client.run(token)
+                break
+                
+            except Exception as e:
+                self.reconnect_attempts += 1
+                self.logger.error(f"Connection attempt {self.reconnect_attempts} failed: {e}")
+                
+                if self.reconnect_attempts >= self.max_reconnect_attempts:
+                    self.logger.error("Max reconnection attempts reached. Giving up.")
+                    break
+                
+                delay = self.exponential_backoff(self.reconnect_attempts)
+                self.logger.info(f"Retrying connection in {delay:.1f} seconds...")
+                time.sleep(delay)
 
 
 if __name__ == "__main__":
