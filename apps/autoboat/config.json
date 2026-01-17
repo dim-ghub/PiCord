@@ -11,7 +11,7 @@
   "commands": {
     "work": {
       "command": "work",
-      "cooldown_minutes": 241,
+      "cooldown_minutes": 5.1,
       "slash_command_id": 901118136529588281
     },
     "collect": {
